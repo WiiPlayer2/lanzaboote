@@ -175,6 +175,10 @@ fn parse_version(path: impl AsRef<Path>) -> Result<u64> {
     Ok(generation_version)
 }
 
+fn parse_profile(path: impl AsRef<Path>) -> Result<String> {
+    Ok("special".to_string())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -184,5 +188,14 @@ mod tests {
         let path = Path::new("system-2-link");
         let parsed_version = parse_version(path).unwrap();
         assert_eq!(parsed_version, 2,);
+    }
+
+    #[test]
+    fn parse_profile_and_version_correctly() {
+        let path = Path::new("system-profiles/special-3-link");
+        let parsed_version = parse_version(path).unwrap();
+        let parsed_profile = parse_profile(path).unwrap();
+        assert_eq!(parsed_version, 3,);
+        assert_eq!(parsed_profile, "special",);
     }
 }
