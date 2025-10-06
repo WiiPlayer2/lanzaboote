@@ -1,10 +1,12 @@
-use anyhow::Result;
+use std::{path::PathBuf, vec};
+
+use anyhow::{Ok, Result};
 use base32ct::{Base32Unpadded, Encoding};
+use stderrlog::new;
 use tempfile::tempdir;
 
 use crate::common::{
-    self, count_files, hash_file, remove_signature, setup_generation_link_from_toplevel,
-    verify_signature,
+    self, count_files, hash_file, remove_signature, setup_generation_link_from_toplevel, setup_generation_link_from_toplevel2, verify_signature
 };
 
 /// Install two generations that point at the same toplevel.
@@ -118,6 +120,57 @@ fn content_addressing_works() -> Result<()> {
     let kernel_hash = hash_file(&kernel_path);
     // Assert the written kernel is the source kernel.
     assert_eq!(kernel_hash_source, kernel_hash);
+
+    Ok(())
+}
+
+#[test]
+fn install_system_profiles() -> Result<()> {
+    let esp = tempdir()?;
+    let tmpdir = tempdir()?;
+    let profiles = tempdir()?;
+    let toplevel = common::setup_toplevel(tmpdir.path())?;
+
+    let generation_link = setup_generation_link_from_toplevel2(&toplevel, profiles.path(), 1, "lanza".to_string())?;
+    let generation_links = vec![generation_link];
+
+    let stub_count = || count_files(&esp.path().join("EFI/Linux")).unwrap();
+    let kernel_and_initrd_count = || count_files(&esp.path().join("EFI/nixos")).unwrap();
+
+    let output = common::lanzaboote_install(1, esp.path(), generation_links)?;
+    assert!(output.status.success());
+    assert_eq!(stub_count(), 1, "Wrong number of stubs after installation");
+    assert_eq!(
+        kernel_and_initrd_count(),
+        2,
+        "Wrong number of kernels & initrds after installation"
+    );
+
+    Ok(())
+}
+
+#[test]
+fn install_default_and_system_profiles() -> Result<()> {
+    let esp = tempdir()?;
+    let tmpdir = tempdir()?;
+    let profiles = tempdir()?;
+    let toplevel = common::setup_toplevel(tmpdir.path())?;
+
+    let generation_link1 = setup_generation_link_from_toplevel(&toplevel, profiles.path(), 1)?;
+    let generation_link2 = setup_generation_link_from_toplevel2(&toplevel, profiles.path(), 2, "lanza".to_string())?;
+    let generation_links = vec![generation_link1, generation_link2];
+
+    let stub_count = || count_files(&esp.path().join("EFI/Linux")).unwrap();
+    let kernel_and_initrd_count = || count_files(&esp.path().join("EFI/nixos")).unwrap();
+
+    let output = common::lanzaboote_install(1, esp.path(), generation_links)?;
+    assert!(output.status.success());
+    assert_eq!(stub_count(), 2, "Wrong number of stubs after installation");
+    assert_eq!(
+        kernel_and_initrd_count(),
+        2,
+        "Wrong number of kernels & initrds after installation"
+    );
 
     Ok(())
 }

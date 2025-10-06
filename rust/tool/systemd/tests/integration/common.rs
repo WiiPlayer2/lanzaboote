@@ -51,9 +51,18 @@ pub fn setup_generation_link_from_toplevel(
     profiles_directory: &Path,
     version: u64,
 ) -> Result<PathBuf> {
+    setup_generation_link_from_toplevel2(toplevel, profiles_directory, version, "system".to_string())
+}
+
+pub fn setup_generation_link_from_toplevel2(
+    toplevel: &Path,
+    profiles_directory: &Path,
+    version: u64,
+    profile_name: String,
+) -> Result<PathBuf> {
     let bootspec = json!({
         "org.nixos.bootspec.v1": {
-          "init": format!("init-v{}", version),
+          "init": format!("init-{}-v{}", profile_name, version),
           // Normally, these are in the Nix store.
           "initrd": toplevel.join("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-6.1.1/initrd"),
           "kernel": toplevel.join("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-6.1.1/kernel"),
@@ -76,8 +85,11 @@ pub fn setup_generation_link_from_toplevel(
         }
     });
 
-    let generation_link_path = profiles_directory.join(format!("system-{}-link", version));
-    fs::create_dir(&generation_link_path)?;
+    let link_name = format!("{}-{}-link", profile_name, version);
+    let generation_link_path =
+        if profile_name == "system" { profiles_directory.join(link_name) }
+        else { profiles_directory.join("system-profiles").join(link_name) };
+    fs::create_dir_all(&generation_link_path)?;
 
     let bootspec_path = generation_link_path.join("boot.json");
     let mut file = fs::File::create(bootspec_path)?;
