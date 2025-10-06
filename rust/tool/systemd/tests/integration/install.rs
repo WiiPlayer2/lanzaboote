@@ -154,16 +154,17 @@ fn install_default_and_system_profiles() -> Result<()> {
     let esp = tempdir()?;
     let tmpdir = tempdir()?;
     let profiles = tempdir()?;
-    let toplevel = common::setup_toplevel(tmpdir.path())?;
+    let toplevel1 = common::setup_toplevel(tmpdir.path())?;
+    let toplevel2 = common::setup_toplevel(tmpdir.path())?;
 
-    let generation_link1 = setup_generation_link_from_toplevel(&toplevel, profiles.path(), 1)?;
-    let generation_link2 = setup_generation_link_from_toplevel2(&toplevel, profiles.path(), 2, "lanza".to_string())?;
+    let generation_link1 = setup_generation_link_from_toplevel(&toplevel1, profiles.path(), 1)?;
+    let generation_link2 = setup_generation_link_from_toplevel2(&toplevel2, profiles.path(), 1, "lanza".to_string())?;
     let generation_links = vec![generation_link1, generation_link2];
 
     let stub_count = || count_files(&esp.path().join("EFI/Linux")).unwrap();
     let kernel_and_initrd_count = || count_files(&esp.path().join("EFI/nixos")).unwrap();
 
-    let output = common::lanzaboote_install(1, esp.path(), generation_links)?;
+    let output = common::lanzaboote_install(2, esp.path(), generation_links)?;
     assert!(output.status.success());
     assert_eq!(stub_count(), 2, "Wrong number of stubs after installation");
     assert_eq!(
